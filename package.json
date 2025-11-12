@@ -28,6 +28,11 @@
   ],
   "author": "Meirion Hughes",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MeirionHughes/seabox"
+  },
+  "homepage": "https://github.com/MeirionHughes/seabox",
   "dependencies": {
     "adm-zip": "^0.5.16",
     "glob": "^10.0.0",
