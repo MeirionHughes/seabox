@@ -69,6 +69,7 @@ Add a `sea` configuration to your `package.json`:
 - **encryptAssets**: Enable encryption for assets (default: false)
 - **encryptExclude**: Patterns to exclude from encryption (e.g., `['*.txt']`)
 - **rebuild**: Automatically rebuild native modules for the target platform before building the SEA (default: false)
+- **rcedit**: (Windows only) Customize executable icon and version information. See [rcedit options](#windows-executable-customization-rcedit)
 - **cacheLocation**: Custom cache directory for extracted binaries (default: `'./.sea-cache'`). Supports environment variable expansion (e.g., `'%LOCALAPPDATA%\\myapp-cache'` on Windows or `'$HOME/.cache/myapp'` on Unix)
 
 ## Usage
@@ -187,6 +188,52 @@ The rebuilder will:
 - Download necessary headers for cross-compilation
 
 **Note**: Cross-compilation may require additional platform-specific build tools installed.
+
+## Windows Executable Customization (rcedit)
+
+For Windows executables, you can customize the icon and version information using the `rcedit` configuration option:
+
+```json
+{
+  "sea": {
+    "output": "myapp.exe",
+    "targets": ["node24.11.0-win32-x64"],
+    "rcedit": {
+      "icon": ".\\assets\\myapp.ico",
+      "file-version": "1.2.3.4",
+      "product-version": "1.2.3.4",
+      "version-string": {
+        "CompanyName": "My Company",
+        "FileDescription": "My Application",
+        "ProductName": "MyApp",
+        "InternalName": "myapp.exe",
+        "OriginalFilename": "myapp.exe",
+        "LegalCopyright": "Copyright (C) 2025 My Company"
+      }
+    }
+  }
+}
+```
+
+### rcedit Options
+
+- **icon**: Path to `.ico` file for the executable icon
+- **file-version**: File version in `X.X.X.X` format
+- **product-version**: Product version in `X.X.X.X` format
+- **version-string**: Object containing version string properties:
+  - `CompanyName`: Company name
+  - `FileDescription`: Description of the file
+  - `ProductName`: Product name
+  - `InternalName`: Internal name
+  - `OriginalFilename`: Original filename
+  - `LegalCopyright`: Copyright notice
+  - `LegalTrademarks`: Trademark information (optional)
+  - `PrivateBuild`: Private build description (optional)
+  - `SpecialBuild`: Special build description (optional)
+
+The rcedit step runs after signature removal and before the SEA blob injection. This only works for Windows (`win32`) targets.
+
+For more details, see the [rcedit documentation](https://github.com/electron/rcedit).
 
 ## Asset Encryption
 
