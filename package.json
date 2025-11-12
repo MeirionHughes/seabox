@@ -1,6 +1,6 @@
 {
   "name": "seabox",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "Node.js Single Executable Application (SEA) builder tool with native and library extraction",
   "main": "lib/index.js",
   "types": "dist/index.d.ts",
