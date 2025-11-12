@@ -13,6 +13,11 @@ A reusable tool for building Node.js Single Executable Applications (SEA) with n
 - Automatic code signature removal before injection
 - Simple configuration via package.json
 
+## Use case
+This tooling was created as an alternative to pkg, which is unfortunatly deprecated, and where forks were running foul of virus checkers. By using node's SEA, the executables are directly from nodejs's distribution source, and built using node's native Single Executable Application solution. Unfortunatly this does mean native modules embedded within the exe cannot run directly and must be extracted to a location on the disk on first run - This tooling automates that process for you, while providing arbitrary asset embedding. Embedded assets are _not_ extracted and access to them is handled by intercepting require and fs.  
+
+Note: **V8 snapshot includes and embedds the original source**, this is currently a limitation of Node's SEA tooling as far as I can tell; thus the snapshot is only useful for faster startup.  
+
 ## Installation
 
 ```bash
