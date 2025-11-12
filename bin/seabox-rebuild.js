@@ -21,18 +21,25 @@ class NativeModuleRebuilder {
     this.nativeModules = new Map();
     this.visitedPaths = new Set();
     
-    // Target configuration
-    this.targetNodeVersion = options.nodeVersion || process.version.replace('v', '');
-    this.targetPlatform = options.platform || process.platform;
-    this.targetArch = options.arch || process.arch;
-    
-    // Parse from target string if provided (e.g., "node24.11.0-win32-x64")
-    if (options.target) {
-      const match = options.target.match(/^node(\d+\.\d+\.\d+)-(\w+)-(\w+)$/);
-      if (match) {
-        this.targetNodeVersion = match[1];
-        this.targetPlatform = match[2];
-        this.targetArch = match[3];
+    // If --current is specified, use the current Node.js version
+    if (options.current) {
+      this.targetNodeVersion = process.version.replace('v', '');
+      this.targetPlatform = process.platform;
+      this.targetArch = process.arch;
+    } else {
+      // Target configuration
+      this.targetNodeVersion = options.nodeVersion || process.version.replace('v', '');
+      this.targetPlatform = options.platform || process.platform;
+      this.targetArch = options.arch || process.arch;
+      
+      // Parse from target string if provided (e.g., "node24.11.0-win32-x64")
+      if (options.target) {
+        const match = options.target.match(/^node(\d+\.\d+\.\d+)-(\w+)-(\w+)$/);
+        if (match) {
+          this.targetNodeVersion = match[1];
+          this.targetPlatform = match[2];
+          this.targetArch = match[3];
+        }
       }
     }
   }
@@ -359,23 +366,27 @@ if (require.main === module) {
     } else if (arg === '--arch' && args[i + 1]) {
       options.arch = args[i + 1];
       i++;
+    } else if (arg === '--current') {
+      options.current = true;
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 seabox-rebuild - Rebuild native modules for target Node.js version
 
 Usage:
-  seabox-rebuild [options] [build-path]
-
 Options:
   --target <target>           Target in format: nodeX.Y.Z-platform-arch
                               Example: node24.11.0-win32-x64
   --node-version <version>    Target Node.js version (e.g., 24.11.0)
   --platform <platform>       Target platform (win32, linux, darwin)
   --arch <arch>               Target architecture (x64, arm64, ia32)
+  --current                   Use the currently installed Node.js version
   --help, -h                  Show this help message
 
 Examples:
+  seabox-rebuild --current
   seabox-rebuild --target node24.11.0-win32-x64
+  seabox-rebuild --node-version 24.11.0 --platform linux --arch x64
+  seabox-rebuild /path/to/project11.0-win32-x64
   seabox-rebuild --node-version 24.11.0 --platform linux --arch x64
   seabox-rebuild /path/to/project
 `);

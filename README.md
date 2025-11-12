@@ -180,6 +180,9 @@ If your project has native modules (e.g., `.node` bindings), you may need to reb
 # Rebuild for a specific target
 npx seabox-rebuild --target node24.11.0-win32-x64
 
+# Rebuild for currently installed nodejs version
+npx seabox-rebuild --current
+
 # Rebuild with separate options
 npx seabox-rebuild --node-version 24.11.0 --platform linux --arch x64
 
