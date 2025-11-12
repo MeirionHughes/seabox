@@ -130,6 +130,11 @@ await build({
 6. **Injection**: Uses postject to inject the blob into the Node binary
 7. **Output**: Produces a standalone executable ready for signing and distribution
 
+**Note on signature removal**: The signature removal step requires platform-specific tools to be available in your PATH:
+- **Windows**: `signtool.exe`
+- **macOS**: `codesign`
+- **Linux**: Not required 
+
 ## Binary Extraction
 
 Native modules (`.node`, `.dll`, `.so`, `.dylib`) are automatically:
