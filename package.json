@@ -1,0 +1,47 @@
+{
+  "name": "seabox",
+  "version": "0.1.0-beta.2",
+  "description": "Node.js Single Executable Application (SEA) builder tool with native and library extraction",
+  "main": "lib/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "seabox": "bin/seabox.js",
+    "seabox-rebuild": "bin/seabox-rebuild.js"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "prepublishOnly": "",
+    "test": "mocha"
+  },
+  "keywords": [
+    "sea",
+    "build",
+    "builder",
+    "single-executable",
+    "SEA",
+    "native",
+    "module",
+    "dll",
+    "packaging",
+    "node",
+    "postject"
+  ],
+  "author": "Meirion Hughes",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "glob": "^10.0.0",
+    "postject": "^1.0.0-alpha.6",
+    "tar": "^6.2.1"
+  },
+  "devDependencies": {
+    "chai": "^6.2.1",
+    "javascript-obfuscator": "^4.1.1",
+    "mocha": "^11.7.5",
+    "node-api-headers": "^1.2.0",
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,26 @@
+# Test files
+test/
+*.spec.js
+
+# Development files
+.git/
+.gitignore
+.vscode/
+
+# Build artifacts
+node_modules/
+dist/
+out/
+build/
+
+# Documentation
+docs/
+
+# CI/CD
+.github/
+
+# Misc
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

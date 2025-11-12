@@ -1,0 +1,5 @@
+This file should be EXCLUDED from the build.
+It contains sensitive information that should NOT be in the executable.
+
+EXCLUDED_FILE_MARKER_12345
+DO_NOT_INCLUDE_THIS_DATA
