@@ -25,7 +25,7 @@
     "output": "native-test.exe",
     "outputPath": "dist",
     "disableExperimentalSEAWarning": true,
-    "useSnapshot": false,
+    "useSnapshot": true,
     "useCodeCache": false,
     "rebuild": true
   },

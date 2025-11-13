@@ -307,11 +307,11 @@ class NativeModuleRebuilder {
     this.scanDependencies(this.buildPath);
 
     if (this.nativeModules.size === 0) {
-      console.log('\nNo native modules found.');
+      console.log('No native modules found.');
       return;
     }
 
-    console.log(`\nFound ${this.nativeModules.size} native module(s) to rebuild.\n`);
+    console.log(`Found ${this.nativeModules.size} native module(s) to rebuild.\n`);
     console.log('='.repeat(60));
 
     // Rebuild each native module
@@ -329,7 +329,7 @@ class NativeModuleRebuilder {
 
     // Summary
     console.log('\n' + '='.repeat(60));
-    console.log('\nRebuild Summary:');
+    console.log('Rebuild Summary:');
     console.log(`  Total modules: ${this.nativeModules.size}`);
     console.log(`  Successful: ${successCount}`);
     console.log(`  Failed: ${failCount}`);

@@ -22,10 +22,11 @@ async function main() {
     const pkgPath = path.join(process.cwd(), 'package.json');
     if (!fs.existsSync(pkgPath)) {
       showHelp = true;
-    }
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    if (!pkg.seabox) {
-      showHelp = true;
+    } else {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (!pkg.seabox) {
+        showHelp = true;
+      }
     }
   }
 
@@ -59,7 +60,7 @@ Configuration:
 
 For more information, see the documentation.
 `);
-
+    return;
   }
 
   try {
