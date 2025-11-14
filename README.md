@@ -1,6 +1,6 @@
 # seabox
 
-A reusable tool for building Node.js Single Executable Applications (SEA) with native-module support.
+A reusable tool for building Node.js Single Executable Applications (SEA) with native-module support and binary extraction. 
 
 ## Features
 
@@ -13,12 +13,11 @@ A reusable tool for building Node.js Single Executable Applications (SEA) with n
 - V8 snapshot support for faster startup
 - Integrity checking for extracted binaries
 - Automatic code signature removal before injection
-- Simple configuration via `seabox.config.json`
 
 ## Use case
-This tooling was created as an alternative to pkg, which is unfortunatly deprecated, and where forks were running foul of virus checkers. By using node's SEA, the executables are directly from nodejs's distribution source, and built using node's native Single Executable Application solution. Unfortunatly this does mean native modules embedded within the exe cannot run directly and must be extracted to a location on the disk on first run - This tooling automates that process for you, while providing arbitrary asset embedding. Embedded assets are _not_ extracted and access to them is handled by intercepting require and fs.  
+This tooling was created as an alternative to pkg, which is unfortunatly deprecated, and where forks were running foul of virus checkers. By using node's SEA, the executables are directly downloaded from nodejs's distribution source, and built using node's native Single Executable Application solution. Unfortunatly this does mean native modules embedded within the exe cannot run directly and must be extracted to a location on the disk on first run - This tooling automates that process for you, while providing arbitrary asset embedding. Embedded assets are _not_ extracted and access to them is handled by intercepting require and fs.  
 
-Note: **V8 snapshot includes and embedds the original source**, this is currently a limitation of Node's SEA tooling as far as I can tell; thus the snapshot is only useful for faster startup.  
+Note: **V8 snapshot includes and embedds the original source**, this is currently a limitation of Node's SEA tooling as far as I can tell; thus the snapshot is only useful for faster startup. Its possible to get around this by using bytenode's vm.script hack (embed the bytenode code as an asset and run another vm snapshot with the faux script input) and I'll look into supporting it in the future. 
 
 ## Installation
 
@@ -190,7 +189,6 @@ seabox automatically handles native modules without any configuration:
 - Custom `require()` shim loads modules from cache
 - Works transparently with packages like `better-sqlite3`, `sharp`, `canvas`, etc.
 
-**Cache directory:** `.seabox-cache/<platform>-<arch>/`
 
 ### Platform-Specific Libraries
 

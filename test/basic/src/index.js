@@ -1,5 +1,5 @@
 
-console.log('=== Seabox v2 Test ===');
+console.log('=== Seabox Test ===');
 console.log('Platform:', process.platform);
 console.log('Architecture:', process.arch);
 console.log('Node Version:', process.version);

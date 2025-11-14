@@ -1,9 +1,3 @@
-/**
- * v2.spec.js
- * Tests for Seabox v2 architecture (ESM-based)
- */
-
-
 import { expect } from 'chai';
 import fs from 'fs';
 import path from 'path';
@@ -57,7 +51,7 @@ describe('Seabox - ESM Architecture', function() {
     }
   });
 
-  it('should have v2 configuration file', function() {
+  it('should have configuration file', function() {
     expect(fs.existsSync(configPath)).to.be.true;
     
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -66,7 +60,7 @@ describe('Seabox - ESM Architecture', function() {
     expect(config.outputs).to.be.an('array').with.length.greaterThan(0);
   });
 
-  it('should build executable using v2 CLI', function() {
+  it('should build executable using  CLI', function() {
     const seaboxPath = path.join(__dirname, '..', 'bin', 'seabox.mjs');
     expect(fs.existsSync(seaboxPath)).to.be.true;
 
@@ -99,7 +93,7 @@ describe('Seabox - ESM Architecture', function() {
   });
 
   it('should create executable in dist directory', function() {
-    const exePath = path.join(distDir, 'test-v2.exe');
+    const exePath = path.join(distDir, 'test.exe');
     expect(fs.existsSync(exePath)).to.be.true;
 
     const stats = fs.statSync(exePath);
@@ -107,7 +101,7 @@ describe('Seabox - ESM Architecture', function() {
   });
 
   it('should run the built executable successfully', function() {
-    const exePath = path.join(distDir, 'test-v2.exe');
+    const exePath = path.join(distDir, 'test.exe');
     
     try {
       const output = execSync(`"${exePath}"`, {
@@ -118,7 +112,7 @@ describe('Seabox - ESM Architecture', function() {
       console.log('Executable output:', output);
 
       // Verify output
-      expect(output).to.include('Seabox v2 Test');
+      expect(output).to.include('Seabox Test');
       expect(output).to.include('Platform:');
       expect(output).to.include('Test Successful');
     } catch (error) {

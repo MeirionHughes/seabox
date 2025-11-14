@@ -4,7 +4,7 @@
     {
       "path": "./dist",
       "target": "node24.11.0-win32-x64",
-      "output": "test-v2.exe"
+      "output": "test.exe"
     }
   ],
   "bundler": {

@@ -1,7 +1,7 @@
 {
-  "name": "seabox-v2-test",
+  "name": "seabox-test",
   "version": "1.0.0",
-  "description": "Test for Seabox v2",
+  "description": "Test for Seabox",
   "type": "module", 
   "dependencies": {
     "better-sqlite3": "12.4.1"
