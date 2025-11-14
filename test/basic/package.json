@@ -1,25 +1,9 @@
 {
-  "name": "seabox-basic-test",
+  "name": "seabox-v2-test",
   "version": "1.0.0",
-  "description": "Basic test for SEA builder",
-  "main": "index.js",
-  "seabox": {
-    "entry": "./index.js",
-    "assets": [
-      "./index.js",
-      "./assets/**/*",
-      "!**/excluded.txt",
-      "!**/*.md"
-    ],
-    "targets": [
-      "node24.11.0-win32-x64"
-    ],
-    "output": "test-app.exe",
-    "outputPath": "dist",
-    "disableExperimentalSEAWarning": true,
-    "useSnapshot": false,
-    "useCodeCache": false,
-    "encryptAssets": true
-
+  "description": "Test for Seabox v2",
+  "type": "module", 
+  "dependencies": {
+    "better-sqlite3": "12.4.1"
   }
 }

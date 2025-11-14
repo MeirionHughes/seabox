@@ -1,161 +1,154 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const { expect } = require('chai');
+/**
+ * v2.spec.js
+ * Tests for Seabox v2 architecture (ESM-based)
+ */
 
-describe('SEA Builder - Basic Test', function() {
-  // Increase timeout for building executables
-  this.timeout(60000);
 
-  const testDir = path.join(__dirname, 'basic');
-  const distPath = path.join(testDir, 'dist');
-  const packageJsonPath = path.join(testDir, 'package.json');
-  const seaBuildPath = path.join(__dirname, '../bin/seabox.js');
-  
-  let packageJson;
-  let outputPath;
+import { expect } from 'chai';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+describe('Seabox - ESM Architecture', function() {
+  this.timeout(120000); // 2 minutes for build operations
+
+  const testProjectDir = path.join(__dirname, 'basic');
+  const configPath = path.join(testProjectDir, 'seabox.config.json');
+  const srcDir = path.join(testProjectDir, 'src');
+  const distDir = path.join(testProjectDir, 'dist');
 
   before(function() {
-    // Read package.json to get expected output name
-    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    const outputName = packageJson.seabox?.output || 'app.exe';
-    outputPath = path.join(distPath, outputName);
-  });
-
-  beforeEach(function() {
-    // Clean previous build
-    if (fs.existsSync(distPath)) {
-      fs.rmSync(distPath, { recursive: true, force: true });
+    // Create test project structure
+    if (!fs.existsSync(testProjectDir)) {
+      fs.mkdirSync(testProjectDir, { recursive: true });
+    }
+    if (!fs.existsSync(srcDir)) {
+      fs.mkdirSync(srcDir, { recursive: true });
+    }
+    
+    // Install dependencies in test project
+    try {
+      execSync('npm install', {
+        cwd: testProjectDir,
+        encoding: 'utf8',
+        stdio: 'inherit'
+      });
+    } catch (error) {
+      console.warn('npm install failed in test folder:', error.message);
     }
   });
 
   after(function() {
-    // Clean up after all tests
-    if (fs.existsSync(distPath)) {
-      fs.rmSync(distPath, { recursive: true, force: true });
+    // Cleanup
+    const cleanupDirs = [
+      path.join(testProjectDir, 'dist'),
+      path.join(testProjectDir, 'out'),
+      path.join(testProjectDir, '.seabox-cache')
+    ];
+
+    for (const dir of cleanupDirs) {
+      if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
     }
   });
 
-  it('should successfully build an executable', function() {
-    const buildCommand = `node "${seaBuildPath}"`;
+  it('should have v2 configuration file', function() {
+    expect(fs.existsSync(configPath)).to.be.true;
     
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    expect(config).to.have.property('entry');
+    expect(config).to.have.property('outputs');
+    expect(config.outputs).to.be.an('array').with.length.greaterThan(0);
+  });
+
+  it('should build executable using v2 CLI', function() {
+    const seaboxPath = path.join(__dirname, '..', 'bin', 'seabox.mjs');
+    expect(fs.existsSync(seaboxPath)).to.be.true;
+
     // Run the build
-    const output = execSync(buildCommand, {
-      cwd: testDir,
-      encoding: 'utf8'
-    });
+    try {
+      const output = execSync(`node "${seaboxPath}" build`, {
+        cwd: testProjectDir,
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
 
+      console.log('Build output:', output);
 
-    // Verify executable was created
-    expect(fs.existsSync(outputPath)).to.be.true;
-    expect(fs.statSync(outputPath).isFile()).to.be.true;
+      // Check that build completed
+      expect(output).to.include('Build');
+    } catch (error) {
+      console.error('Build failed:', error.message);
+      if (error.stdout) console.error('STDOUT:', error.stdout);
+      if (error.stderr) console.error('STDERR:', error.stderr);
+      throw error;
+    }
   });
 
-  it('should create an executable that runs successfully', function() {
-    // Build the executable
-    execSync(`node "${seaBuildPath}"`, {
-      cwd: testDir,
-      stdio: 'pipe'
-    });
+  it('should create bundled entry file', function() {
+    const bundledEntry = path.join(testProjectDir, 'out', '_sea-entry.js');
+    expect(fs.existsSync(bundledEntry)).to.be.true;
 
-    // Run the executable
-    const output = execSync(`"${outputPath}"`, {
-      cwd: testDir,
-      encoding: 'utf8'
-    });
-
-
-    // Verify output contains expected content
-    expect(output).to.include('SEA Builder Test');
-    expect(output).to.include('Test Successful');
+    const content = fs.readFileSync(bundledEntry, 'utf8');
+    expect(content).to.include('Bundled by Seabox');
   });
 
-  it('should include correct platform information in executable output', function() {
-    // Build the executable
-    execSync(`node "${seaBuildPath}"`, {
-      cwd: testDir,
-      stdio: 'pipe'
-    });
+  it('should create executable in dist directory', function() {
+    const exePath = path.join(distDir, 'test-v2.exe');
+    expect(fs.existsSync(exePath)).to.be.true;
 
-    // Run the executable
-    const output = execSync(`"${outputPath}"`, {
-      cwd: testDir,
-      encoding: 'utf8'
-    });
-
-    // Verify platform-specific information is present
-    expect(output).to.include('Platform:');
-    expect(output).to.include('Architecture:');
-    expect(output).to.include('Node Version:');
+    const stats = fs.statSync(exePath);
+    expect(stats.size).to.be.greaterThan(1024 * 1024); // At least 1MB
   });
 
-  it('should create executable with correct configuration', function() {
-    // Build the executable
-    execSync(`node "${seaBuildPath}"`, {
-      cwd: testDir,
-      stdio: 'pipe'
-    });
+  it('should run the built executable successfully', function() {
+    const exePath = path.join(distDir, 'test-v2.exe');
+    
+    try {
+      const output = execSync(`"${exePath}"`, {
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
 
-    // Verify the executable file exists and has reasonable size
-    const stats = fs.statSync(outputPath);
-    expect(stats.size).to.be.greaterThan(1000000); // At least 1MB (Node binary)
+      console.log('Executable output:', output);
+
+      // Verify output
+      expect(output).to.include('Seabox v2 Test');
+      expect(output).to.include('Platform:');
+      expect(output).to.include('Test Successful');
+    } catch (error) {
+      console.error('Execution failed:', error.message);
+      if (error.stdout) console.error('STDOUT:', error.stdout);
+      if (error.stderr) console.error('STDERR:', error.stderr);
+      throw error;
+    }
   });
 
-  it('should exclude files based on negative glob patterns', function() {
-    // Build the executable
-    execSync(`node "${seaBuildPath}"`, {
-      cwd: testDir,
-      stdio: 'pipe'
-    });
+  it('should support --verbose flag', function() {
+    const seaboxPath = path.join(__dirname, '..', 'bin', 'seabox.mjs');
+    
+    // Clean dist to force rebuild
+    if (fs.existsSync(distDir)) {
+      fs.rmSync(distDir, { recursive: true, force: true });
+    }
 
-    // Run the executable
-    const output = execSync(`"${outputPath}"`, {
-      cwd: testDir,
-      encoding: 'utf8'
-    });
+    try {
+      const output = execSync(`node "${seaboxPath}" build --verbose`, {
+        cwd: testProjectDir,
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
 
-    // Verify inclusion test passed
-    expect(output).to.include('Included asset found: assets/config.json');
-    
-    // Verify exclusion test passed
-    expect(output).to.include('EXCLUSION_TEST_PASSED');
-    expect(output).to.include('Excluded asset correctly absent: assets/excluded.txt');
-    expect(output).to.include('Markdown asset correctly excluded: assets/README.md');
-    
-    // Make sure excluded files were not included
-    expect(output).to.not.include('EXCLUSION_TEST_FAILED');
-    expect(output).to.not.include('EXCLUDED_FILE_MARKER');
-    expect(output).to.not.include('MARKDOWN_EXCLUDE_MARKER');
-  });
-
-  it('should verify exclusion files exist in source but not in executable', function() {
-    // Verify excluded files exist in source
-    const excludedFilePath = path.join(testDir, 'assets', 'excluded.txt');
-    const markdownFilePath = path.join(testDir, 'assets', 'README.md');
-    
-    expect(fs.existsSync(excludedFilePath)).to.be.true;
-    expect(fs.existsSync(markdownFilePath)).to.be.true;
-    
-    // Verify they contain the markers
-    const excludedContent = fs.readFileSync(excludedFilePath, 'utf8');
-    const markdownContent = fs.readFileSync(markdownFilePath, 'utf8');
-    
-    expect(excludedContent).to.include('EXCLUDED_FILE_MARKER');
-    expect(markdownContent).to.include('MARKDOWN_EXCLUDE_MARKER');
-    
-    // Build and run the executable
-    execSync(`node "${seaBuildPath}"`, {
-      cwd: testDir,
-      stdio: 'pipe'
-    });
-
-    const output = execSync(`"${outputPath}"`, {
-      cwd: testDir,
-      encoding: 'utf8'
-    });
-
-    // Verify the markers are NOT in the executable output
-    expect(output).to.not.include('EXCLUDED_FILE_MARKER');
-    expect(output).to.not.include('MARKDOWN_EXCLUDE_MARKER');
+      expect(output).to.include('[Bundler]');
+      expect(output).to.include('Bundle created');
+    } catch (error) {
+      console.error('Verbose build failed:', error.message);
+      throw error;
+    }
   });
 });

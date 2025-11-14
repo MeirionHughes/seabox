@@ -2,11 +2,10 @@
   "name": "seabox",
   "version": "0.1.0-beta.3",
   "description": "Node.js Single Executable Application (SEA) builder tool with native and library extraction",
-  "main": "lib/index.js",
-  "types": "dist/index.d.ts",
+  "main": "lib/index.mjs",
+  "type": "module",
   "bin": {
-    "seabox": "bin/seabox.js",
-    "seabox-rebuild": "bin/seabox-rebuild.js"
+    "seabox": "bin/seabox.mjs"
   },
   "scripts": {
     "clean": "rimraf dist",
@@ -34,10 +33,15 @@
   },
   "homepage": "https://github.com/MeirionHughes/seabox",
   "dependencies": {
+    "@rollup/plugin-commonjs": "^28.0.2",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
     "adm-zip": "^0.5.16",
     "glob": "^10.0.0",
     "postject": "^1.0.0-alpha.6",
     "rcedit": "^4.0.1",
+    "rolldown": "^1.0.0-beta.50",
+    "rollup": "^4.28.1",
     "tar": "^6.2.1"
   },
   "devDependencies": {

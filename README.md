@@ -5,13 +5,15 @@ A reusable tool for building Node.js Single Executable Applications (SEA) with n
 ## Features
 
 - Bundle Node.js applications into standalone executables
-- Automatic native module (.node, .dll, .so, .dylib) extraction and loading
-- Asset encryption with obfuscated keys embedded in V8 snapshots
+- **Automatic asset detection** from `path.join(__dirname, ...)` patterns
+- **Automatic native module detection** (.node files) with pattern transforms
+- Platform-specific library extraction (DLLs, shared libraries)
+- Asset encryption with obfuscated keys
 - Multi-platform targeting (Windows, Linux, macOS)
 - V8 snapshot support for faster startup
 - Integrity checking for extracted binaries
 - Automatic code signature removal before injection
-- Simple configuration via package.json
+- Simple configuration via `seabox.config.json`
 
 ## Use case
 This tooling was created as an alternative to pkg, which is unfortunatly deprecated, and where forks were running foul of virus checkers. By using node's SEA, the executables are directly from nodejs's distribution source, and built using node's native Single Executable Application solution. Unfortunatly this does mean native modules embedded within the exe cannot run directly and must be extracted to a location on the disk on first run - This tooling automates that process for you, while providing arbitrary asset embedding. Embedded assets are _not_ extracted and access to them is handled by intercepting require and fs.  
@@ -26,65 +28,81 @@ npm install --save-dev seabox
 
 ## Configuration
 
-Add a `sea` configuration to your `package.json`:
+Create a `seabox.config.json` file in your project root:
 
 ```json
 {
-  "sea": {
-    "entry": "./out/server.js",
-    "assets": [
-      "./out/client/**/*",
-      "./out/lib/**/*",
-      "./out/native/**/*",
-      "!**/*.md",
-      "!**/test/**"
-    ],
-    "binaries": [
-      "*.node",
-      "*.dll"
-    ],
-    "targets": [
-      "node24.11.0-win32-x64"
-    ],
-    "output": "myapp.exe",
-    "outputPath": "dist",
-    "disableExperimentalSEAWarning": true,
-    "useSnapshot": true,
-    "useCodeCache": false
-  }
+  "entry": "./src/index.js",
+  "outputs": [
+    {
+      "path": "./dist/win",
+      "target": "node24.11.0-win32-x64",
+      "output": "myapp.exe"
+    }
+  ],
+  "bundler": {
+    "external": []
+  },
+  "encryptAssets": false,
+  "useSnapshot": true,
+  "verbose": false
 }
 ```
 
 ## Configuration Options
 
-- **entry**: Path to your bundled application entry point
-- **assets**: Array of glob patterns for files to include (supports `!` prefix for exclusions, e.g., `"!**/*.md"`)
-- **binaries**: Patterns to identify binary files that need extraction (e.g., `.node`, `.dll`)
-- **targets**: Array of target platforms (format: `nodeX.Y.Z-platform-arch`)
-- **output**: Name of the output executable
-- **outputPath**: Directory for build output
-- **disableExperimentalSEAWarning**: Suppress Node.js SEA experimental warnings (default: true)
-- **useSnapshot**: Enable V8 snapshot for faster startup (default: false)
-- **useCodeCache**: Enable V8 code cache (default: false)
-- **encryptAssets**: Enable encryption for assets (default: false)
-- **encryptExclude**: Patterns to exclude from encryption (e.g., `['*.txt']`)
-- **rebuild**: Automatically rebuild native modules for the target platform before building the SEA (default: false)
-- **rcedit**: (Windows only) Customize executable icon and version information. See [rcedit options](#windows-executable-customization-rcedit)
-- **cacheLocation**: Custom cache directory for extracted binaries (default: `'./.sea-cache'`). Supports environment variable expansion (e.g., `'%LOCALAPPDATA%\\myapp-cache'` on Windows or `'$HOME/.cache/myapp'` on Unix)
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `entry` | `string` | Yes | Path to your application's entry point |
+| `outputs` | `array` | Yes | Array of build targets |
+| `outputs[].path` | `string` | Yes | Output directory for this target |
+| `outputs[].target` | `string` | Yes | Build target (format: `nodeX.Y.Z-platform-arch`) |
+| `outputs[].output` | `string` | Yes | Output filename |
+| `outputs[].libraries` | `array` | No | Glob patterns for shared libraries (DLLs/SOs) requiring filesystem extraction (defaults: `**/*.dll` for Windows, `**/*.so*` for Linux, `**/*.dylib` for macOS) |
+| `outputs[].rcedit` | `object` | No | Windows executable metadata (icon, version info) |
+| `assets` | `array` | No | Glob patterns for assets to embed (merged with auto-detected assets) |
+| `bundler` | `object` | No | Bundler options |
+| `bundler.external` | `array` | No | Modules to exclude from bundling |
+| `bundler.plugins` | `array` | No | Additional Rollup plugins |
+| `bundler.minify` | `boolean` | No | Minify bundled code |
+| `bundler.sourcemap` | `boolean` | No | Generate source maps |
+| `encryptAssets` | `boolean` | No | Enable asset encryption (default: false) |
+| `encryptExclude` | `array` | No | Glob patterns to exclude from encryption |
+| `useSnapshot` | `boolean` | No | Enable V8 startup snapshots (default: true) |
+| `useCodeCache` | `boolean` | No | Enable V8 code cache (default: false) |
+| `cacheLocation` | `string` | No | Path for code cache storage |
+| `verbose` | `boolean` | No | Enable verbose logging (default: false) |
 
 ## Usage
 
-After installing `seabox` as a dev dependency and configuring your `package.json`, build your SEA executable:
+### CLI Commands
 
-### npm script (recommended)
+```bash
+# Build executable(s)
+npx seabox build
 
-Add a build script to your `package.json`:
+# Build with verbose output
+npx seabox build --verbose
+
+# Specify custom config file
+npx seabox build --config custom-config.json
+
+# Initialize a new config file
+npx seabox init
+
+# Show help
+npx seabox help
+```
+
+### npm Scripts (Recommended)
+
+Add to your `package.json`:
 
 ```json
 {
   "scripts": {
-    "build:exe": "seabox",
-    "build:exe:verbose": "seabox --verbose"
+    "build": "seabox build",
+    "build:verbose": "seabox build --verbose"
   }
 }
 ```
@@ -92,27 +110,13 @@ Add a build script to your `package.json`:
 Then run:
 
 ```bash
-npm run build:exe
-```
-
-### CLI
-
-```bash
-# Build using package.json configuration
-npx seabox
-
-# Build using a standalone config file (alternative to package.json)
-npx seabox --config sea-config.json
-
-# Verbose output
-npx seabox --verbose
-
+npm run build
 ```
 
 ### Programmatic API
 
 ```javascript
-const { build } = require('seabox');
+import { build } from 'seabox';
 
 await build({
   projectRoot: process.cwd(),
@@ -122,126 +126,100 @@ await build({
 
 ## How It Works
 
-1. **Asset Scanning**: Scans and resolves all files matching your asset patterns
-2. **Manifest Generation**: Creates a runtime manifest with metadata for binary extraction
-3. **Bootstrap Injection**: Prepends bootstrap code to handle native module extraction
-4. **Blob Creation**: Uses Node.js SEA tooling to create the application blob
-5. **Binary Fetching**: Downloads the target Node.js binary and removes its signature
-6. **Injection**: Uses postject to inject the blob into the Node binary
-7. **Output**: Produces a standalone executable ready for signing and distribution
+seabox automates the entire SEA build process:
 
-**Note on signature removal**: The signature removal step requires platform-specific tools to be available in your PATH:
-- **Windows**: `signtool.exe`
-- **macOS**: `codesign`
-- **Linux**: Not required 
+1. **Bundling** - Automatically bundles your app with Rollup, detecting:
+   - Native module patterns (`bindings`, `node-gyp-build`, direct `.node` requires)
+   - Asset references via `path.join(__dirname, 'relative/path')`
 
-## Binary Extraction
+2. **Asset Collection** - Gathers assets from three sources:
+   - **Auto-detected**: Files referenced via `path.join(__dirname, ...)` patterns
+   - **Config globs**: Patterns specified in `assets` array
+   - **Libraries**: Platform-specific shared libraries (DLLs/SOs)
 
-Native modules (`.node`, `.dll`, `.so`, `.dylib`) are automatically:
-- Extracted to a cache directory on first run
-- Integrity-checked using SHA-256 hashes
-- Loaded via custom module resolution
+3. **Native Module Rebuilding** - Rebuilds native modules for target platform
 
-### Cache Location
+4. **Bootstrap Injection** - Adds runtime code for asset loading and native module extraction
 
-By default, binaries are extracted to: `./.sea-cache/<appname>/<version>-<platform>-<arch>`
+5. **SEA Blob Creation** - Packages everything using Node.js SEA tooling
 
-You can customize the cache location in your configuration:
+6. **Binary Preparation** - Downloads target Node.js binary and removes code signature
+
+7. **Injection** - Uses `postject` to inject the blob into the Node.js binary
+
+8. **Output** - Produces standalone executable(s) ready for distribution
+
+### Automatic Asset Detection
+
+**Like pkg**, seabox automatically detects and embeds assets referenced in your code:
+
+```javascript
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// This asset will be automatically detected and embedded
+const configPath = path.join(__dirname, '../config/app.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+```
+
+**Detection works with:**
+- `path.join(__dirname, 'relative/path')`
+- `path.resolve(__dirname, 'relative/path')`
+- Multiple path segments: `path.join(__dirname, '..', 'assets', 'file.txt')`
+
+**Asset sources (merged and deduplicated):**
+1. **Auto-detected** from code analysis during bundling
+2. **Config globs** from `assets: ["./data/**/*", "./public/**/*"]`
+3. **Platform libraries** from `outputs[].libraries` (e.g., DLLs for Windows)
+
+### Native Module Support
+
+seabox automatically handles native modules without any configuration:
+
+**Supported patterns:**
+- `require('bindings')('module')` - Standard bindings package
+- `require('./build/Release/addon.node')` - Direct requires
+- `require('node-gyp-build')(__dirname)` - Prebuild binaries
+- `require('node-pre-gyp')` patterns - Pre-compiled binaries
+
+**At runtime:**
+- Native modules are extracted to a cache directory on first run
+- Modules are integrity-checked with SHA-256 hashes
+- Custom `require()` shim loads modules from cache
+- Works transparently with packages like `better-sqlite3`, `sharp`, `canvas`, etc.
+
+**Cache directory:** `.seabox-cache/<platform>-<arch>/`
+
+### Platform-Specific Libraries
+
+Libraries that require filesystem access (like DLLs that are loaded via `dlopen`) can be specified with glob patterns:
 
 ```json
 {
-  "sea": {
-    "cacheLocation": "%LOCALAPPDATA%\\myapp-cache"
-  }
-}
-```
-
-The cache location supports environment variable expansion:
-- **Windows**: `%LOCALAPPDATA%`, `%APPDATA%`, `%TEMP%`, etc.
-- **Unix/Linux/macOS**: `$HOME`, `$TMPDIR`, `${XDG_CACHE_HOME}`, etc.
-
-**Override at runtime**: Set the `SEACACHE` environment variable to override the configured location:
-
-```bash
-# Windows
-set SEACACHE=C:\custom\cache\path
-myapp.exe
-
-# Unix/Linux/macOS
-export SEACACHE=/custom/cache/path
-./myapp
-```
-
-## Native Module Rebuilding
-
-If your project has native modules (e.g., `.node` bindings), you may need to rebuild them for the target Node.js version:
-
-```bash
-# Rebuild for a specific target
-npx seabox-rebuild --target node24.11.0-win32-x64
-
-# Rebuild for currently installed nodejs version
-npx seabox-rebuild --current
-
-# Rebuild with separate options
-npx seabox-rebuild --node-version 24.11.0 --platform linux --arch x64
-
-# Rebuild in a specific directory
-npx seabox-rebuild /path/to/project --target node24.11.0-linux-x64
-```
-
-The rebuilder will:
-- Scan all dependencies for native modules (those with `binding.gyp` or `gypfile: true`)
-- Rebuild each one using `node-gyp` for the target platform and Node.js version
-- Download necessary headers for cross-compilation
-
-**Note**: Cross-compilation may require additional platform-specific build tools installed.
-
-## Windows Executable Customization (rcedit)
-
-For Windows executables, you can customize the icon and version information using the `rcedit` configuration option:
-
-```json
-{
-  "sea": {
-    "output": "myapp.exe",
-    "targets": ["node24.11.0-win32-x64"],
-    "rcedit": {
-      "icon": ".\\assets\\myapp.ico",
-      "file-version": "1.2.3.4",
-      "product-version": "1.2.3.4",
-      "version-string": {
-        "CompanyName": "My Company",
-        "FileDescription": "My Application",
-        "ProductName": "MyApp",
-        "InternalName": "myapp.exe",
-        "OriginalFilename": "myapp.exe",
-        "LegalCopyright": "Copyright (C) 2025 My Company"
-      }
+  "outputs": [
+    {
+      "target": "node24.11.0-win32-x64",
+      "libraries": ["**/*.dll"]  // Auto-extracted at runtime
     }
-  }
+  ]
 }
 ```
 
-### rcedit Options
+**Defaults by platform:**
+- **Windows**: `**/*.dll`
+- **Linux**: `**/*.so`, `**/*.so.*`
+- **macOS**: `**/*.dylib`
 
-- **icon**: Path to `.ico` file for the executable icon
-- **file-version**: File version in `X.X.X.X` format
-- **product-version**: Product version in `X.X.X.X` format
-- **version-string**: Object containing version string properties:
-  - `CompanyName`: Company name
-  - `FileDescription`: Description of the file
-  - `ProductName`: Product name
-  - `InternalName`: Internal name
-  - `OriginalFilename`: Original filename
-  - `LegalCopyright`: Copyright notice
-  - `LegalTrademarks`: Trademark information (optional)
-  - `PrivateBuild`: Private build description (optional)
-  - `SpecialBuild`: Special build description (optional)
+These files are extracted on first run (like `.node` files) since they need to be loaded from the filesystem.
 
-The rcedit step runs after signature removal and before the SEA blob injection. This only works for Windows (`win32`) targets.
+### Code Signature Removal
 
-For more details, see the [rcedit documentation](https://github.com/electron/rcedit).
+Required before SEA injection. Platform-specific tools needed:
+- **Windows**: `signtool.exe` (from Windows SDK)
+- **macOS**: `codesign` (included with Xcode)
+- **Linux**: Not required
 
 ## Asset Encryption
 
@@ -284,3 +262,215 @@ seabox supports optional AES-256-GCM encryption of embedded assets to protect yo
 
 MIT
 Copyright Meirion Hughes 2025
+## Examples
+
+### Basic Application
+
+```javascript
+// src/index.js
+console.log('Hello from SEA!');
+console.log('Platform:', process.platform);
+console.log('Architecture:', process.arch);
+```
+
+```json
+// seabox.config.json
+{
+  "entry": "./src/index.js",
+  "outputs": [
+    {
+      "path": "./dist",
+      "target": "node24.11.0-win32-x64",
+      "output": "hello.exe"
+    }
+  ]
+}
+```
+
+### With Assets (Auto-Detection)
+
+```javascript
+// src/index.js
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Assets referenced via path.join(__dirname, ...) are auto-detected
+const configPath = path.join(__dirname, '../config/settings.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+console.log('Config loaded:', config);
+```
+
+No configuration needed - the asset is automatically detected and embedded!
+
+### With Config Assets
+
+```json
+{
+  "entry": "./src/index.js",
+  "outputs": [
+    {
+      "path": "./dist",
+      "target": "node24.11.0-win32-x64",
+      "output": "myapp.exe"
+    }
+  ],
+  "assets": [
+    "./public/**/*",
+    "./data/**/*.json",
+    "!**/*.md"
+  ]
+}
+```
+
+All files matching the glob patterns will be embedded. Auto-detected assets are merged automatically.
+
+### With Native Modules
+
+```javascript
+// src/index.js
+import Database from 'better-sqlite3';
+
+const db = new Database(':memory:');
+db.exec('CREATE TABLE users (name TEXT)');
+db.prepare('INSERT INTO users VALUES (?)').run('Alice');
+
+const users = db.prepare('SELECT * FROM users').all();
+console.log('Users:', users);
+
+db.close();
+```
+
+No special configuration needed - seabox automatically detects and handles the native module!
+
+### Multi-Platform Build
+
+```json
+{
+  "entry": "./src/index.js",
+  "outputs": [
+    {
+      "path": "./dist/win",
+      "target": "node24.11.0-win32-x64",
+      "output": "myapp.exe"
+    },
+    {
+      "path": "./dist/linux",
+      "target": "node24.11.0-linux-x64",
+      "output": "myapp"
+    },
+    {
+      "path": "./dist/macos",
+      "target": "node24.11.0-darwin-arm64",
+      "output": "myapp"
+    }
+  ],
+  "bundler": {
+    "external": []
+  },
+  "useSnapshot": true
+}
+```
+
+Run `seabox build` and get executables for all three platforms!
+
+## Advanced Features
+
+### Asset Encryption
+
+Protect your source code with AES-256-GCM encryption:
+
+```json
+{
+  "entry": "./src/index.js",
+  "outputs": [
+    {
+      "path": "./dist",
+      "target": "node24.11.0-win32-x64",
+      "output": "myapp.exe"
+    }
+  ],
+  "encryptAssets": true,
+  "encryptExclude": ["*.txt"]
+}
+```
+
+### External Dependencies
+
+Exclude packages from bundling:
+
+```json
+{
+  "entry": "./src/index.js",
+  "outputs": [
+    {
+      "path": "./dist",
+      "target": "node24.11.0-win32-x64",
+      "output": "myapp.exe"
+    }
+  ],
+  "bundler": {
+    "external": ["fsevents", "some-optional-dep"]
+  }
+}
+```json
+{
+  "bundler": {
+    "external": ["fsevents", "some-optional-dep"]
+  }
+}
+```
+
+Useful for:
+- Platform-specific optional dependencies
+- Packages that don't bundle well
+- Reducing bundle size
+
+## Platform Support
+
+### Supported Targets
+
+| Platform | Architectures | Example |
+|----------|--------------|---------|
+| Windows | x64, arm64 | `node24.11.0-win32-x64` |
+| Linux | x64, arm64 | `node24.11.0-linux-x64` |
+| macOS | x64, arm64 | `node24.11.0-darwin-arm64` |
+
+### Node.js Versions
+
+Works with Node.js 18.0.0 and above that support SEA.
+
+## Troubleshooting
+
+### Native modules not loading
+
+If you see errors about missing `.node` files:
+1. Check that the module was detected during build (look for "Native modules detected" in output)
+2. Run with `--verbose` to see detailed bundling info
+3. Ensure the module uses standard patterns (`bindings`, `node-gyp-build`, etc.)
+
+### Build fails with signature removal error
+
+Install the required tools:
+- **Windows**: Install Windows SDK for `signtool.exe`
+- **macOS**: Install Xcode Command Line Tools for `codesign`
+
+### Cross-compilation issues
+
+When building for a different platform than your current OS:
+- Native module detection works cross-platform
+- The bundled JavaScript is platform-agnostic
+- Each target is built independently with the correct Node.js binary
+
+## Contributing
+
+Contributions welcome! Please open an issue or PR on [GitHub](https://github.com/MeirionHughes/seabox).
+
+## License
+
+MIT
+
+Copyright © 2025 Meirion Hughes

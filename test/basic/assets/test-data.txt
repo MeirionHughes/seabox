@@ -1,9 +1,0 @@
-This is a test file for asset encryption.
-It contains multiple lines of data that should be encrypted at build time.
-
-Line 1: The quick brown fox jumps over the lazy dog
-Line 2: Asset encryption testing with AES-256-GCM
-Line 3: This content should be decrypted at runtime
-Line 4: Verification data for encryption tests
-
-Secret data: SEA_ENCRYPTION_TEST_VERIFIED
