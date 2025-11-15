@@ -227,8 +227,7 @@ You can also explicitly specify library patterns in your config:
 These files are extracted on first run (like `.node` files) since they need to be loaded from the filesystem.
 
 ### Code Signature Removal
-
-Required before SEA injection. Platform-specific tools needed:
+If you have sign tools available, the seabox will attempt to unsign the node exe before modifying it. This is to reduce issues afterward when you try to resign it. 
 - **Windows**: `signtool.exe` (from Windows SDK)
 - **macOS**: `codesign` (included with Xcode)
 - **Linux**: Not required
