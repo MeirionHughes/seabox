@@ -57,7 +57,7 @@ Create a `seabox.config.json` file in your project root:
 | `outputs[].path` | `string` | Yes | Output directory for this target |
 | `outputs[].target` | `string` | Yes | Build target (format: `nodeX.Y.Z-platform-arch`) |
 | `outputs[].output` | `string` | Yes | Output filename |
-| `outputs[].libraries` | `array` | No | Glob patterns for shared libraries (DLLs/SOs) requiring filesystem extraction (defaults: `**/*.dll` for Windows, `**/*.so*` for Linux, `**/*.dylib` for macOS) |
+| `outputs[].libraries` | `array` | No | Explicit glob patterns for shared libraries (DLLs/SOs) requiring filesystem extraction. Libraries referenced in code via `, ...)` are automatically detected. |
 | `outputs[].rcedit` | `object` | No | Windows executable metadata (icon, version info) |
 | `assets` | `array` | No | Glob patterns for assets to embed (merged with auto-detected assets) |
 | `bundler` | `object` | No | Rolldown Bundler options |
@@ -165,11 +165,6 @@ const configPath = path.join(__dirname, '../config/app.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 ```
 
-**Detection works with:**
-- `path.join(__dirname, 'relative/path')`
-- `path.resolve(__dirname, 'relative/path')`
-- Multiple path segments: `path.join(__dirname, '..', 'assets', 'file.txt')`
-
 **Asset sources (merged and deduplicated):**
 1. **Auto-detected** from code analysis during bundling
 2. **Config globs** from `assets: ["./data/**/*", "./public/**/*"]`
@@ -189,28 +184,35 @@ seabox automatically handles native modules without any configuration:
 - Native modules are extracted to a cache directory on first run
 - Modules are integrity-checked with SHA-256 hashes
 - Custom `require()` shim loads modules from cache
-- Works transparently with packages like `better-sqlite3`, `sharp`, `canvas`, etc.
-
 
 ### Platform-Specific Libraries
 
-Libraries that require filesystem access (like DLLs that are loaded via `dlopen`) can be specified with glob patterns:
+Libraries that require filesystem access (like DLLs loaded via `dlopen`) can be included in two ways:
+
+**1. Automatic Detection (Recommended)**
+
+If your code references a DLL using `path.join(__dirname, ...)`, it will be automatically detected and included:
+
+```javascript
+// This will be automatically detected during bundling
+const dllPath = path.join(__dirname, './lib/RGDevice.dll');
+```
+
+**2. Explicit Glob Patterns**
+
+You can also explicitly specify library patterns in your config:
 
 ```json
 {
   "outputs": [
     {
       "target": "node24.11.0-win32-x64",
-      "libraries": ["**/*.dll"]  // Auto-extracted at runtime
+      "libraries": ["lib/*.dll"]  // Manually specify DLLs to include
     }
   ]
 }
 ```
 
-**Defaults by platform:**
-- **Windows**: `**/*.dll`
-- **Linux**: `**/*.so`, `**/*.so.*`
-- **macOS**: `**/*.dylib`
 
 These files are extracted on first run (like `.node` files) since they need to be loaded from the filesystem.
 
