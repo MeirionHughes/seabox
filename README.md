@@ -25,6 +25,16 @@ Note: **V8 snapshot includes and embedds the original source**, this is currentl
 npm install --save-dev seabox
 ```
 
+### Optional: Windows Executable Metadata
+
+If you want to customize Windows executable metadata (icon, version info), install `rcedit`:
+
+```bash
+npm install --save-dev rcedit
+```
+
+This is only needed if you use the `rcedit` configuration option.
+
 ## Configuration
 
 Create a `seabox.config.json` file in your project root:
