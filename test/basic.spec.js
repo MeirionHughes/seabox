@@ -49,6 +49,12 @@ describe('Seabox - ESM Architecture', function() {
         fs.rmSync(dir, { recursive: true, force: true });
       }
     }
+    
+    // Clean up sign output
+    const signOutput = path.join(testProjectDir, 'sign-output.json');
+    if (fs.existsSync(signOutput)) {
+      fs.unlinkSync(signOutput);
+    }
   });
 
   it('should have configuration file', function() {
@@ -138,11 +144,40 @@ describe('Seabox - ESM Architecture', function() {
         stdio: 'pipe'
       });
 
-      expect(output).to.include('[Bundler]');
+      expect(output).to.include('Bundling entry:');
       expect(output).to.include('Bundle created');
     } catch (error) {
       console.error('Verbose build failed:', error.message);
       throw error;
     }
+  });
+
+  it('should call custom signing script with correct config', function() {
+    const signOutputPath = path.join(testProjectDir, 'sign-output.json');
+    
+    // Verify sign output was created
+    expect(fs.existsSync(signOutputPath)).to.be.true;
+    
+    // Read and verify the config passed to signing script
+    const signConfig = JSON.parse(fs.readFileSync(signOutputPath, 'utf8'));
+    
+    expect(signConfig).to.have.property('exePath');
+    expect(signConfig.exePath).to.include('test.exe');
+    expect(path.isAbsolute(signConfig.exePath)).to.be.true;
+    
+    expect(signConfig).to.have.property('target');
+    expect(signConfig.target).to.equal('node24.11.0-win32-x64');
+    
+    expect(signConfig).to.have.property('platform');
+    expect(signConfig.platform).to.equal('win32');
+    
+    expect(signConfig).to.have.property('arch');
+    expect(signConfig.arch).to.equal('x64');
+    
+    expect(signConfig).to.have.property('nodeVersion');
+    expect(signConfig.nodeVersion).to.equal('24.11.0');
+    
+    expect(signConfig).to.have.property('projectRoot');
+    expect(path.isAbsolute(signConfig.projectRoot)).to.be.true;
   });
 });

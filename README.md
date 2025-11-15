@@ -60,9 +60,9 @@ Create a `seabox.config.json` file in your project root:
 | `outputs[].libraries` | `array` | No | Glob patterns for shared libraries (DLLs/SOs) requiring filesystem extraction (defaults: `**/*.dll` for Windows, `**/*.so*` for Linux, `**/*.dylib` for macOS) |
 | `outputs[].rcedit` | `object` | No | Windows executable metadata (icon, version info) |
 | `assets` | `array` | No | Glob patterns for assets to embed (merged with auto-detected assets) |
-| `bundler` | `object` | No | Bundler options |
+| `bundler` | `object` | No | Rolldown Bundler options |
 | `bundler.external` | `array` | No | Modules to exclude from bundling |
-| `bundler.plugins` | `array` | No | Additional Rollup plugins |
+| `bundler.plugins` | `array` | No | Additional Rolldown plugins |
 | `bundler.minify` | `boolean` | No | Minify bundled code |
 | `bundler.sourcemap` | `boolean` | No | Generate source maps |
 | `encryptAssets` | `boolean` | No | Enable asset encryption (default: false) |
@@ -70,6 +70,7 @@ Create a `seabox.config.json` file in your project root:
 | `useSnapshot` | `boolean` | No | Enable V8 startup snapshots (default: true) |
 | `useCodeCache` | `boolean` | No | Enable V8 code cache (default: false) |
 | `cacheLocation` | `string` | No | Path for code cache storage |
+| `sign` | `string` | No | Path to custom signing script (.mjs/.cjs) |
 | `verbose` | `boolean` | No | Enable verbose logging (default: false) |
 
 ## Usage
@@ -127,9 +128,10 @@ await build({
 
 seabox automates the entire SEA build process:
 
-1. **Bundling** - Automatically bundles your app with Rollup, detecting:
+1. **Bundling** - Automatically bundles your app with Rolldown, detecting:
    - Native module patterns (`bindings`, `node-gyp-build`, direct `.node` requires)
    - Asset references via `path.join(__dirname, 'relative/path')`
+   - Additional 
 
 2. **Asset Collection** - Gathers assets from three sources:
    - **Auto-detected**: Files referenced via `path.join(__dirname, ...)` patterns
@@ -219,6 +221,43 @@ Required before SEA injection. Platform-specific tools needed:
 - **macOS**: `codesign` (included with Xcode)
 - **Linux**: Not required
 
+### Custom Signing
+
+You can apply code signing after the build completes by specifying a custom signing script:
+
+```json
+{
+  "sign": "./scripts/sign.mjs"
+}
+```
+
+The signing script must export a default function that receives a config object:
+
+```javascript
+// scripts/sign.mjs
+export default async function sign(config) {
+  const { exePath, target, platform, arch, nodeVersion, projectRoot } = config;
+  
+  // Example: Windows code signing with signtool
+  if (platform === 'win32') {
+    execSync(`signtool sign /fd SHA256 /a "${exePath}"`);
+  }
+  
+  // Example: macOS code signing
+  if (platform === 'darwin') {
+    execSync(`codesign --force --sign "Developer ID" "${exePath}"`);
+  }
+}
+```
+
+**Config parameters:**
+- `exePath` - Absolute path to the built executable
+- `target` - Full target string (e.g., "node24.11.0-win32-x64")
+- `platform` - Platform name (win32, linux, darwin)
+- `arch` - Architecture (x64, arm64)
+- `nodeVersion` - Node.js version
+- `projectRoot` - Absolute path to project root
+
 ## Asset Encryption
 
 seabox supports optional AES-256-GCM encryption of embedded assets to protect your application code and data:
@@ -238,231 +277,17 @@ seabox supports optional AES-256-GCM encryption of embedded assets to protect yo
 1. **Build Time**: A random 256-bit encryption key is generated
 2. **Asset Encryption**: Non-binary assets are encrypted using AES-256-GCM
 3. **Key Embedding**: The encryption key is obfuscated and embedded in the bootstrap code
-4. **Key Obfuscation**: the bootstrap and key code are obfuscated, but not removed 
+4. **Key Obfuscation**: the bootstrap and key code are obfuscated
 5. **Runtime Decryption**: Assets are transparently decrypted when accessed
 
 ### Considerations
 
 - **Binary files** (`.node`, `.dll`, `.so`, `.dylib`) are **never encrypted** as they must be extracted as-is
 - The manifest (`sea-manifest.json`) is **not encrypted** to allow bootstrap initialization
-- **V8 snapshot includes the original source**, this is currently a limitation of Node's SEA. 
+- **V8 snapshot includes the original source**, this is currently a limitation of Node's SEA tooling. 
 - Encryption provides **obfuscation**, not cryptographic security against determined attackers
 - The bootloader code, that includes the encryption key, is obfuscated in the source embedded by Node's SEA
   
-
-## Platform Support
-
-- **Windows**: `win32-x64`, `win32-arm64`
-- **Linux**: `linux-x64`, `linux-arm64`
-- **macOS**: `darwin-x64`, `darwin-arm64`
-
-## License
-
-MIT
-Copyright Meirion Hughes 2025
-## Examples
-
-### Basic Application
-
-```javascript
-// src/index.js
-console.log('Hello from SEA!');
-console.log('Platform:', process.platform);
-console.log('Architecture:', process.arch);
-```
-
-```json
-// seabox.config.json
-{
-  "entry": "./src/index.js",
-  "outputs": [
-    {
-      "path": "./dist",
-      "target": "node24.11.0-win32-x64",
-      "output": "hello.exe"
-    }
-  ]
-}
-```
-
-### With Assets (Auto-Detection)
-
-```javascript
-// src/index.js
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Assets referenced via path.join(__dirname, ...) are auto-detected
-const configPath = path.join(__dirname, '../config/settings.json');
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-
-console.log('Config loaded:', config);
-```
-
-No configuration needed - the asset is automatically detected and embedded!
-
-### With Config Assets
-
-```json
-{
-  "entry": "./src/index.js",
-  "outputs": [
-    {
-      "path": "./dist",
-      "target": "node24.11.0-win32-x64",
-      "output": "myapp.exe"
-    }
-  ],
-  "assets": [
-    "./public/**/*",
-    "./data/**/*.json",
-    "!**/*.md"
-  ]
-}
-```
-
-All files matching the glob patterns will be embedded. Auto-detected assets are merged automatically.
-
-### With Native Modules
-
-```javascript
-// src/index.js
-import Database from 'better-sqlite3';
-
-const db = new Database(':memory:');
-db.exec('CREATE TABLE users (name TEXT)');
-db.prepare('INSERT INTO users VALUES (?)').run('Alice');
-
-const users = db.prepare('SELECT * FROM users').all();
-console.log('Users:', users);
-
-db.close();
-```
-
-No special configuration needed - seabox automatically detects and handles the native module!
-
-### Multi-Platform Build
-
-```json
-{
-  "entry": "./src/index.js",
-  "outputs": [
-    {
-      "path": "./dist/win",
-      "target": "node24.11.0-win32-x64",
-      "output": "myapp.exe"
-    },
-    {
-      "path": "./dist/linux",
-      "target": "node24.11.0-linux-x64",
-      "output": "myapp"
-    },
-    {
-      "path": "./dist/macos",
-      "target": "node24.11.0-darwin-arm64",
-      "output": "myapp"
-    }
-  ],
-  "bundler": {
-    "external": []
-  },
-  "useSnapshot": true
-}
-```
-
-Run `seabox build` and get executables for all three platforms!
-
-## Advanced Features
-
-### Asset Encryption
-
-Protect your source code with AES-256-GCM encryption:
-
-```json
-{
-  "entry": "./src/index.js",
-  "outputs": [
-    {
-      "path": "./dist",
-      "target": "node24.11.0-win32-x64",
-      "output": "myapp.exe"
-    }
-  ],
-  "encryptAssets": true,
-  "encryptExclude": ["*.txt"]
-}
-```
-
-### External Dependencies
-
-Exclude packages from bundling:
-
-```json
-{
-  "entry": "./src/index.js",
-  "outputs": [
-    {
-      "path": "./dist",
-      "target": "node24.11.0-win32-x64",
-      "output": "myapp.exe"
-    }
-  ],
-  "bundler": {
-    "external": ["fsevents", "some-optional-dep"]
-  }
-}
-```json
-{
-  "bundler": {
-    "external": ["fsevents", "some-optional-dep"]
-  }
-}
-```
-
-Useful for:
-- Platform-specific optional dependencies
-- Packages that don't bundle well
-- Reducing bundle size
-
-## Platform Support
-
-### Supported Targets
-
-| Platform | Architectures | Example |
-|----------|--------------|---------|
-| Windows | x64, arm64 | `node24.11.0-win32-x64` |
-| Linux | x64, arm64 | `node24.11.0-linux-x64` |
-| macOS | x64, arm64 | `node24.11.0-darwin-arm64` |
-
-### Node.js Versions
-
-Works with Node.js 18.0.0 and above that support SEA.
-
-## Troubleshooting
-
-### Native modules not loading
-
-If you see errors about missing `.node` files:
-1. Check that the module was detected during build (look for "Native modules detected" in output)
-2. Run with `--verbose` to see detailed bundling info
-3. Ensure the module uses standard patterns (`bindings`, `node-gyp-build`, etc.)
-
-### Build fails with signature removal error
-
-Install the required tools:
-- **Windows**: Install Windows SDK for `signtool.exe`
-- **macOS**: Install Xcode Command Line Tools for `codesign`
-
-### Cross-compilation issues
-
-When building for a different platform than your current OS:
-- Native module detection works cross-platform
-- The bundled JavaScript is platform-agnostic
-- Each target is built independently with the correct Node.js binary
-
 ## Contributing
 
 Contributions welcome! Please open an issue or PR on [GitHub](https://github.com/MeirionHughes/seabox).

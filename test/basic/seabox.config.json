@@ -12,5 +12,6 @@
   },
   "encryptAssets": false,
   "useSnapshot": false,
-  "verbose": true
+  "verbose": true,
+  "sign": "./sign.mjs"
 }
