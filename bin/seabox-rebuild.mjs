@@ -8,6 +8,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as diag from '../lib/diagnostics.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,10 +21,10 @@ const __dirname = path.dirname(__filename);
  * @param {boolean} verbose - Enable verbose logging
  */
 function rebuildNativeModule(modulePath, platform, arch, verbose = false) {
-  if (verbose) {
-    console.log(`Rebuilding native module: ${modulePath}`);
-    console.log(`Target: ${platform}-${arch}`);
-  }
+  diag.setVerbose(verbose);
+  
+  diag.verbose(`Rebuilding native module: ${modulePath}`);
+  diag.verbose(`Target: ${platform}-${arch}`);
 
   const packageJsonPath = path.join(modulePath, 'package.json');
   if (!fs.existsSync(packageJsonPath)) {
@@ -36,9 +37,7 @@ function rebuildNativeModule(modulePath, platform, arch, verbose = false) {
   // Check if module has native bindings
   const hasBindingGyp = fs.existsSync(path.join(modulePath, 'binding.gyp'));
   if (!hasBindingGyp && !pkg.gypfile) {
-    if (verbose) {
-      console.log(`Module ${moduleName} does not appear to have native bindings, skipping`);
-    }
+    diag.verbose(`Module ${moduleName} does not appear to have native bindings, skipping`);
     return;
   }
 
@@ -46,9 +45,7 @@ function rebuildNativeModule(modulePath, platform, arch, verbose = false) {
     // Use node-gyp to rebuild for the target platform
     const cmd = `npx node-gyp rebuild --target_platform=${platform} --target_arch=${arch}`;
     
-    if (verbose) {
-      console.log(`Running: ${cmd}`);
-    }
+    diag.verbose(`Running: ${cmd}`);
 
     execSync(cmd, {
       cwd: modulePath,
@@ -60,13 +57,9 @@ function rebuildNativeModule(modulePath, platform, arch, verbose = false) {
       }
     });
 
-    if (verbose) {
-      console.log(`✓ Successfully rebuilt ${moduleName}`);
-    }
+    diag.verbose(`Successfully rebuilt ${moduleName}`);
   } catch (error) {
-    if (verbose) {
-      console.error(`Failed to rebuild ${moduleName}:`, error.message);
-    }
+    diag.verbose(`Failed to rebuild ${moduleName}: ${error.message}`);
     throw error;
   }
 }
@@ -76,7 +69,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   
   if (args.length < 3) {
-    console.error('Usage: seabox-rebuild <module-path> <platform> <arch> [--verbose]');
+    diag.error('Usage: seabox-rebuild <module-path> <platform> <arch> [--verbose]');
     process.exit(1);
   }
 
@@ -87,7 +80,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     rebuildNativeModule(modulePath, platform, arch, verbose);
     process.exit(0);
   } catch (error) {
-    console.error('Rebuild failed:', error.message);
+    diag.error(`Rebuild failed: ${error.message}`);
     process.exit(1);
   }
 }

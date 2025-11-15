@@ -11,6 +11,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import Module from 'module';
+import * as diag from '../lib/diagnostics.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,12 +27,15 @@ const commands = {
     const config = loadConfig(configPath, projectRoot);
     
     if (!config) {
-      console.log('❌ No configuration found\n');
-      console.log('Seabox looks for configuration in this order:');
-      console.log('  1. --config <path> (command line argument)');
-      console.log('  2. seabox.config.json (in current directory)');
-      console.log('  3. "seabox" field in package.json\n');
-      console.log('To get started, run: npx seabox init\n');
+      diag.error('No configuration found');
+      diag.separator();
+      diag.info('Seabox looks for configuration in this order:');
+      diag.numberedItem(1, '--config <path> (command line argument)');
+      diag.numberedItem(2, 'seabox.config.json (in current directory)');
+      diag.numberedItem(3, '"seabox" field in package.json');
+      diag.separator();
+      diag.info('To get started, run: npx seabox init');
+      diag.separator();
       commands.help();
       process.exit(1);
     }
@@ -61,7 +65,7 @@ const commands = {
     const configPath = path.join(process.cwd(), 'seabox.config.json');
     
     if (fs.existsSync(configPath)) {
-      console.error('❌ Error: seabox.config.json already exists');
+      diag.error('seabox.config.json already exists');
       process.exit(1);
     }
 
@@ -71,27 +75,34 @@ const commands = {
 
     fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2) + '\n', 'utf8');
     
-    console.log('✅ Created seabox.config.json');
-    console.log('\n📝 Next steps:');
-    console.log('   1. Edit seabox.config.json to configure your build');
-    console.log('   2. Run: npx seabox build\n');
+    diag.success('Created seabox.config.json', 0);
+    diag.separator();
+    diag.info('Next steps:');
+    diag.numberedItem(1, 'Edit seabox.config.json to configure your build');
+    diag.numberedItem(2, 'Run: npx seabox build');
+    diag.separator();
   },
 
   help: () => {
-    console.log('Seabox v2 - Node.js Single Executable Application Builder\n');
-    console.log('Usage: seabox [command] [options]\n');
-    console.log('Commands:');
-    console.log('  build      Build executable(s) for configured targets (default)');
-    console.log('  init       Create a default seabox.config.json\n');
-    console.log('Build Options:');
-    console.log('  --config   Path to config file (default: seabox.config.json)');
-    console.log('  --verbose  Enable verbose logging');
-    console.log('  --debug    Keep temporary build files\n');
-    console.log('Examples:');
-    console.log('  seabox init');
-    console.log('  seabox build');
-    console.log('  seabox --verbose           # Same as: seabox build --verbose');
-    console.log('  seabox build --verbose\n');
+    diag.info('Seabox v2 - Node.js Single Executable Application Builder');
+    diag.separator();
+    diag.info('Usage: seabox [command] [options]');
+    diag.separator();
+    diag.info('Commands:');
+    diag.info('  build      Build executable(s) for configured targets (default)');
+    diag.info('  init       Create a default seabox.config.json');
+    diag.separator();
+    diag.info('Build Options:');
+    diag.info('  --config   Path to config file (default: seabox.config.json)');
+    diag.info('  --verbose  Enable verbose logging');
+    diag.info('  --debug    Keep temporary build files');
+    diag.separator();
+    diag.info('Examples:');
+    diag.info('  seabox init');
+    diag.info('  seabox build');
+    diag.info('  seabox --verbose           # Same as: seabox build --verbose');
+    diag.info('  seabox build --verbose');
+    diag.separator();
   }
 };
 
@@ -119,14 +130,15 @@ async function main() {
     try {
       await commands[command](commandArgs);
     } catch (error) {
-      console.error('Error:', error.message);
+      diag.error(error.message);
       if (args.includes('--verbose')) {
         console.error(error.stack);
       }
       process.exit(1);
     }
   } else {
-    console.error(`Unknown command: ${command}\n`);
+    diag.error(`Unknown command: ${command}`);
+    diag.separator();
     commands.help();
     process.exit(1);
   }
