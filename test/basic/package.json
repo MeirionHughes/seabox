@@ -4,6 +4,7 @@
   "description": "Test for Seabox",
   "type": "module", 
   "dependencies": {
-    "better-sqlite3": "12.4.1"
+    "better-sqlite3": "12.4.1", 
+    "classic-level": "3.0.0"
   }
 }

@@ -12,5 +12,5 @@
   },
   "encryptAssets": false,
   "useSnapshot": false,
-  "verbose": false
+  "verbose": true
 }

@@ -20,6 +20,13 @@ const db = new Database(':memory:', {});
 
 db.close();
 
+const { ClassicLevel } = require('classic-level')
+
+// Create a database
+const db2 = new ClassicLevel('./db', { valueEncoding: 'json' });
+
+db2.open();
+
 console.log('Native modules working: ✓');
 
 // Test auto-detected asset (path.join(__dirname, ...))
