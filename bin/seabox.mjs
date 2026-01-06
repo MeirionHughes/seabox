@@ -12,9 +12,12 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import Module from 'module';
 import * as diag from '../lib/diagnostics.mjs';
+import { createRequire } from 'module';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 const commands = {
   build: async (args) => {
@@ -84,8 +87,6 @@ const commands = {
   },
 
   help: () => {
-    diag.info('Seabox v2 - Node.js Single Executable Application Builder');
-    diag.separator();
     diag.info('Usage: seabox [command] [options]');
     diag.separator();
     diag.info('Commands:');
@@ -107,6 +108,8 @@ const commands = {
 };
 
 async function main() {
+  console.log(`Seabox v${pkg.version}`);
+  
   const args = process.argv.slice(2);
   
   // If no args or first arg is a flag, default to help
