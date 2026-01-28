@@ -37,8 +37,8 @@
     "adm-zip": "^0.5.16",
     "glob": "^10.0.0",
     "postject": "^1.0.0-alpha.6",
-    "rolldown": "^1.0.0-beta.50",
-    "tar": "^6.2.1"
+    "rolldown": "^1.0.0-rc.2",
+    "tar": "^7.5.7"
   },
   "peerDependencies": {
     "rcedit": "^4.0.1"
@@ -51,7 +51,7 @@
   "devDependencies": {
     "chai": "^6.2.1",
     "javascript-obfuscator": "^4.1.1",
-    "mocha": "^11.7.5",
+    "mocha": "^11.3.0",
     "node-api-headers": "^1.2.0",
     "rimraf": "^6.0.1"
   },
