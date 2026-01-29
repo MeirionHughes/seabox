@@ -41,7 +41,7 @@
     "tar": "^7.5.7"
   },
   "peerDependencies": {
-    "rcedit": "^4.0.1"
+    "rcedit": "^4 || ^5"
   },
   "peerDependenciesMeta": {
     "rcedit": {

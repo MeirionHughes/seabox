@@ -148,17 +148,19 @@ seabox automates the entire SEA build process:
    - **Config globs**: Patterns specified in `assets` array
    - **Libraries**: Platform-specific shared libraries (DLLs/SOs)
 
-3. **Native Module Rebuilding** - Rebuilds native modules for target platform
+3. **Binary Preparation** - Downloads target Node.js binary 
 
-4. **Bootstrap Injection** - Adds runtime code for asset loading and native module extraction
+4. **Native Module Rebuilding** - Rebuilds native modules using the downloaded Node.js binary, ensuring ABI compatibility
 
-5. **SEA Blob Creation** - Packages everything using Node.js SEA tooling
+5. **Bootstrap Injection** - Adds runtime code for asset loading and native module extraction
 
-6. **Binary Preparation** - Downloads target Node.js binary and removes code signature
+6. **SEA Blob Creation** - Packages everything using the target Node.js binary 
 
-7. **Injection** - Uses `postject` to inject the blob into the Node.js binary
+7. **Signature Removal** - Removes code signature from the binary before injection
 
-8. **Output** - Produces standalone executable(s) ready for distribution
+8. **Injection** - Uses `postject` to inject the blob into the Node.js binary
+
+9. **Output** - Produces standalone executable(s) ready for distribution
 
 ### Automatic Asset Detection
 
